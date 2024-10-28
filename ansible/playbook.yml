@@ -1,0 +1,23 @@
+---
+- hosts: app_servers
+  become: true
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Start Docker Service
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Run Docker Container
+      docker_container:
+        name: foo-app
+        image: carcyy/assignment2app:1.0.0
+        state: started
+        ports:
+          - "80:80"

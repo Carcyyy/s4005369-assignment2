@@ -1,0 +1,47 @@
+name: deploy-and-run
+
+on:
+  push:
+    branches:
+      - main 
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy with Terraform and Run App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip awscli ansible docker.io
+          pip3 install boto3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terraform Init and Apply
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Configure Servers with Ansible
+        run: |
+          ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
+
+      - name: Run App Container
+        run: |
+          ansible -i ansible/inventory.yml -m shell -a "sudo docker run -d -p 80:80 foo-app"

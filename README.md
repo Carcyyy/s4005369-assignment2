@@ -103,7 +103,6 @@ After deploying, it is crucial to ensure the application is running properly:
   - **index.js**: The main server-side code for running the Node.js app.
 - **.github/workflows/**: Contains the GitHub Actions workflows for deployment.
   - **deploy.yml**: Defines the CI/CD pipeline for building and deploying the infrastructure and app.
-- **scripts/**: Utility scripts like `manage_ansible.sh` to handle manual deployments.
 - **deploy.sh**: Backup shell script for deploying without CI/CD.
 - **README.md**: This document, which explains the project.
 

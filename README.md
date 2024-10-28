@@ -7,72 +7,117 @@
 
 ## Overview of My Solution
 
-This project is all about setting up a reliable and secure environment for a Node.js app with a PostgreSQL database on AWS. Here's how I designed and deployed everything to meet the requirements:
+This project aims to deploy a resilient, secure environment for a Node.js application backed by a PostgreSQL database, all hosted on AWS. The deployment uses Terraform for infrastructure provisioning, Ansible for configuration management, and Docker for containerization, ensuring a smooth and efficient process from infrastructure setup to application deployment.
 
 ### Infrastructure Setup
 
-- **EC2 Instances**: I used AWS EC2 instances to host both the Node.js app and the PostgreSQL database.
-  - Two instances run the app, and they are placed behind a load balancer so they can handle more traffic and stay online even if one instance goes down.
-  - One instance hosts the PostgreSQL database. It connects securely to the app instances over a private IP.
+The architecture was designed with high availability, scalability, and security in mind, focusing on ensuring the application is always available to users while keeping the environment secure. Below is a detailed breakdown of the infrastructure:
 
-- **Load Balancer**: To keep things balanced, I used an AWS Elastic Load Balancer (ELB). This ELB makes sure the incoming requests are distributed evenly across the two app instances, which helps keep the app available even if something fails.
+- **EC2 Instances**:
+  - **App Instances**: Two EC2 instances host the Node.js application. These instances are behind an AWS Elastic Load Balancer (ELB) to ensure high availability and traffic distribution, making the application robust against failures.
+  - **Database Instance**: A separate EC2 instance is used to host the PostgreSQL database, which ensures the database is isolated for added security.
 
-- **Security Groups**: Security is key, so I set up two main security groups:
-  1. **App Security Group**: This allows HTTP traffic (port 80) for the web app and SSH access (port 22) for management.
-  2. **Database Security Group**: Allows traffic on port 5432 (PostgreSQL) only from the app's private IP addresses and SSH access for managing the database.
+- **Load Balancer**: An AWS Elastic Load Balancer (ELB) is used to distribute incoming HTTP requests evenly across the two application instances. The ELB provides fault tolerance so that if one instance becomes unavailable, traffic is redirected to the other instance, ensuring the application remains accessible.
 
-- **AWS S3 and Terraform State**: I'm using an S3 bucket to keep the Terraform state files in one place. This helps to collaborate better and keeps track of changes safely.
+- **Security Groups**:
+  - **App Security Group**: Configured to allow HTTP traffic on port 80 from anywhere, which ensures that the web application is accessible to users. SSH access on port 22 is restricted to trusted IP addresses for management.
+  - **Database Security Group**: This group allows inbound traffic only on port 5432, restricted to the app instances' IP addresses, ensuring secure communication between the application and the database. SSH access is also allowed for administrative purposes.
 
-- **Private Networking**: The communication between the app servers and the database happens over a private subnet, which makes it more secure and prevents public access to the database.
+- **AWS S3 and Terraform State**: An S3 bucket is used for storing Terraform state files. This helps maintain a centralized and consistent state, enabling collaboration, tracking of changes, and disaster recovery.
 
-### How Data Flows Through the System
+- **Private Networking**: The app instances communicate with the PostgreSQL database instance over a private subnet, ensuring secure communication while preventing direct public access to the database.
 
-1. **Client Requests**: Users connect through a web browser. Requests first go to the load balancer.
-2. **Load Balancer**: The load balancer passes the request to one of the available app instances.
-3. **App Server**: The Node.js app handles the request. If it needs data, it will send a query to the PostgreSQL database.
-4. **Database**: The database processes the request and sends the result back to the app server.
-5. **Response to Client**: The app server processes the data and sends a response back to the user via the load balancer.
+### Data Flow Overview
 
-This setup keeps things efficient and secure while providing high availability.
+1. **Client Requests**:
+   - Users interact with the system through a browser, sending HTTP requests to the load balancer.
+   - The ELB is responsible for distributing requests to the app instances.
 
-### How I Deployed Everything
+2. **Load Balancer**:
+   - The load balancer acts as the entry point, passing incoming requests to one of the available app instances to ensure even load distribution.
 
-To deploy this solution, I used **Terraform** for provisioning resources and **Ansible** for configuring the servers. There's also a backup plan using a shell script, just in case GitHub Actions is down.
+3. **App Server Processing**:
+   - The Node.js application processes user requests. For static content, the server directly responds to the user. For database-related requests, it sends queries to the PostgreSQL instance.
+
+4. **Database Communication**:
+   - The PostgreSQL instance processes requests from the app servers and sends back the results. Since the database is in a private subnet, it is protected from public internet access, which enhances security.
+
+5. **Response to Client**:
+   - After processing data, the app server sends a response back to the client through the load balancer, providing a seamless user experience.
+
+### Deployment Steps
+
+The deployment of the infrastructure and application was automated using **Terraform**, **Ansible**, and **GitHub Actions**. Here is the detailed breakdown:
 
 #### Prerequisites
 
-- **Terraform** and **Ansible** installed locally.
-- **AWS credentials** configured via GitHub secrets.
-- **SSH private key** stored in GitHub secrets for secure access to EC2 instances.
+- **Terraform** must be installed to provision infrastructure.
+- **Ansible** is required for configuring EC2 instances.
+- **AWS credentials** are configured via GitHub Secrets for deployment automation.
+- **SSH private key** stored in GitHub Secrets for secure SSH access to instances.
 
-#### GitHub Actions Workflow
+#### Deployment Workflow
 
-*The GitHub Actions workflow handles most of the deployment automatically:*
-- It kicks off the process when I push to the `main` branch.
-- It installs the necessary tools (like Terraform and Ansible).
-- It uses AWS credentials stored in secrets to authenticate.
-- Terraform provisions the infrastructure, and Ansible configures the servers.
+The deployment is managed through **GitHub Actions**, which automates the entire process from infrastructure setup to application deployment.
 
-#### Backup Plan: Deploying with a Shell Script
+- **GitHub Actions Workflow**:
+  - When code is pushed to the `main` branch, the workflow automatically begins.
+  - It starts by installing necessary tools like Terraform, Ansible, Docker, and AWS CLI.
+  - **AWS credentials** are set up using GitHub Secrets to ensure secure access to AWS services.
+  - **Terraform** is used to provision EC2 instances, security groups, load balancer, and other resources.
+  - **Ansible** playbooks are run to configure the EC2 instances with Docker, set up the necessary software, and launch the Node.js app container.
 
-I also have a `deploy.sh` script as a backup if GitHub Actions fails.
-- The script ensures Terraform and Ansible are installed and runs the deployment commands manually.
-- It's a simple way to bring everything up without needing automation tools.
+#### Manual Backup Deployment with Shell Script
 
-#### Testing the App
+A `deploy.sh` script is provided as a backup in case the GitHub Actions workflow is unavailable or fails.
+- The script first runs `terraform init` and `terraform apply` to provision the infrastructure.
+- The script then configures the servers using an Ansible playbook, which is helpful for cases where automated CI/CD is not feasible.
 
-After deployment, I check that the app is up and running:
-1. I use the load balancer URL to make sure the app responds.
-2. If there are issues, I SSH into the EC2 instances to check logs and troubleshoot.
+#### Testing the Application
 
-### What's in This Repository?
+After deploying, it is crucial to ensure the application is running properly:
 
-- `terraform/`: Holds the Terraform files for infrastructure.
-- `ansible/`: Contains playbooks for configuring servers.
-- `.github/workflows/`: GitHub Actions workflow for automating deployment.
-- `scripts/`: Useful scripts like `manage_ansible.sh` for managing Ansible runs.
-- `README.md`: This document, describing the whole setup.
+1. **Access the Application**:
+   - Use the load balancer's public DNS to check if the app is accessible in the browser.
+   - The app should show a "Hello World :-)" message and have a link to view the list of foos.
 
-This approach helped me build a secure, scalable setup for the Foo app, ensuring it runs reliably and efficiently.
+2. **Database Connection**:
+   - The `/foos` endpoint verifies the app can connect to the PostgreSQL database.
+   - If there are issues, SSH into the app server and inspect Docker container logs to troubleshoot.
 
-#
+3. **Check Logs**:
+   - Docker logs can be used to check both the application and database for any runtime errors.
+   - Use the following command to view logs:
+     ```sh
+     sudo docker logs <container_name>
+     ```
+
+### Directory Structure
+
+- **terraform/**: Contains Terraform configurations used to provision all AWS resources.
+- **ansible/**: Holds playbooks to automate configuration on the app and database servers.
+- **app/**: Contains the Node.js application code and configuration.
+  - **views/**: Contains EJS templates (`index.ejs`, `foos.ejs`) for rendering app pages.
+  - **Dockerfile**: Used for building the Docker image for the Node.js app.
+  - **.env**: Environment variables for database credentials and other configurations.
+  - **index.js**: The main server-side code for running the Node.js app.
+- **.github/workflows/**: Contains the GitHub Actions workflows for deployment.
+  - **deploy.yml**: Defines the CI/CD pipeline for building and deploying the infrastructure and app.
+- **scripts/**: Utility scripts like `manage_ansible.sh` to handle manual deployments.
+- **deploy.sh**: Backup shell script for deploying without CI/CD.
+- **README.md**: This document, which explains the project.
+
+### Technologies Used
+
+- **AWS**: For hosting the application and database.
+- **Docker**: Containerizes the application to provide a consistent environment.
+- **Terraform**: Automates the creation of infrastructure.
+- **Ansible**: Used to configure the instances after they're created.
+- **GitHub Actions**: Automates the deployment process.
+
+### Conclusion
+
+This project showcases how to create a scalable, secure, and resilient infrastructure for a Node.js app using modern DevOps tools. By utilizing AWS for cloud infrastructure, Docker for containerization, and automating deployment with Terraform, Ansible, and GitHub Actions, the goal was to ensure that the app is always available, secure, and easy to maintain. This setup provides the flexibility needed to adapt to real-world production traffic while keeping everything manageable and reproducible.
+
+If you need to deploy or update this project, follow the instructions provided in the respective sections, and feel free to use the `deploy.sh` script as a backup if the GitHub Actions workflow is unavailable.
+

@@ -39,11 +39,24 @@ variable "db_password" {
 }
 
 variable "db_host" {
-  description = "Database hostname"
-  default     = aws_instance.db_instance.public_dns 
+  description = "Public DNS of the database instance"
+  type        = string
 }
 
 variable "db_port" {
   description = "Database port"
   default     = 5432
 }
+
+
+variable "public_key_path" {
+  description = "Path to your SSH public key file"
+  type        = string
+}
+
+
+variable "admin_ip" {
+  description = "Admin IP address for SSH access"
+  type        = string
+}
+

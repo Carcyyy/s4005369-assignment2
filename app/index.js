@@ -6,7 +6,7 @@ const app = express();
 
 const port = process.env.PORT || 3001;
 
-// Set up body parser middleware
+
 app.use(bodyParser.json());
 app.use(
   bodyParser.urlencoded({
@@ -14,7 +14,7 @@ app.use(
   })
 );
 
-// Set up the view engine
+
 app.set('view engine', 'ejs');
 
 // Health check endpoint

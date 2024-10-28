@@ -114,9 +114,6 @@ After deploying, it is crucial to ensure the application is running properly:
 - **Ansible**: Used to configure the instances after they're created.
 - **GitHub Actions**: Automates the deployment process.
 
-### Conclusion
-
-This project showcases how to create a scalable, secure, and resilient infrastructure for a Node.js app using modern DevOps tools. By utilizing AWS for cloud infrastructure, Docker for containerization, and automating deployment with Terraform, Ansible, and GitHub Actions, the goal was to ensure that the app is always available, secure, and easy to maintain. This setup provides the flexibility needed to adapt to real-world production traffic while keeping everything manageable and reproducible.
 
 If you need to deploy or update this project, follow the instructions provided in the respective sections, and feel free to use the `deploy.sh` script as a backup if the GitHub Actions workflow is unavailable.
 
